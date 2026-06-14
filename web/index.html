@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Allam EMB Studio - المحرك الاحترافي</title>
+    <style>
+        :root { --primary: #DC2626; --secondary: #2563EB; --dark: #1E1E1E; --panel: #2B2B2B; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--dark); color: #E5E7EB; padding: 10px; min-height: 100vh; display: flex; justify-content: center; }
+        
+        .app-container { width: 100%; max-width: 1200px; display: grid; grid-template-columns: 280px 1fr; gap: 15px; background: #121212; padding: 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .sidebar { background: var(--panel); padding: 15px; border-radius: 16px; display: flex; flex-direction: column; gap: 15px; }
+        .sidebar h2 { font-size: 18px; color: var(--primary); border-bottom: 2px solid #3e3e3e; padding-bottom: 8px; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-size: 13px; color: #9CA3AF; }
+        
+        .btn { padding: 10px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-tool { background: #374151; color: white; border: 1px solid #4B5563; }
+        .btn-tool.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; }
+        .btn-action { background: #10B981; color: white; width: 100%; margin-top: 5px; }
+        .btn-file { background: #4B5563; color: white; position: relative; overflow: hidden; }
+        .btn-file input { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
+        
+        .main-workspace { display: flex; flex-direction: column; gap: 15px; }
+        .workspace-header { background: var(--panel); padding: 12px 20px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .canvas-frame { background: #1A1A1A; border: 2px dashed #3E3E3E; border-radius: 16px; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; min-height: 500px; }
+        canvas { background: #FFFFFF; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: block; }
+        
+        .thread-palette { display: flex; gap: 8px; background: var(--panel); padding: 10px; border-radius: 12px; overflow-x: auto; }
+        .thread-color { width: 35px; height: 35px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; flex-shrink: 0; }
+        .thread-color.selected { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        
+        input[type="range"] { width: 100%; accent-color: var(--primary); }
+        .status-bar { font-size: 12px; color: #9CA3AF; text-align: center; padding: 5px; background: #1A1A1A; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="sidebar">
+        <h2>🪡 أدوات علام EMB</h2>
+        
+        <div class="control-group">
+            <label>ملفات التصميم</label>
+            <button class="btn btn-file">
+                📂 استيراد EMB / DST
+                <input type="file" id="fileInput" accept=".emb,.dst">
+            </button>
+            <button class="btn btn-action" id="exportDst">💾 تصدير DST</button>
+        </div>
+
+        <div class="control-group">
+            <label>أدوات الغرز</label>
+            <button class="btn btn-tool active" data-mode="satin">✏️ ساتان</button>
+            <button class="btn btn-tool" data-mode="tatami">🧱 تاتامي</button>
+            <button class="btn btn-tool" data-mode="jump">✈️ قفز</button>
+        </div>
+
+        <div class="control-group">
+            <label>خصائص الغرزة</label>
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>الكثافة:</span>
+                <span id="densityVal">4.5</span>
+            </div>
+            <input type="range" id="densitySlider" min="2" max="15" value="5" step="0.5">
+            
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:5px;">
+                <span>الطول:</span>
+                <span id="lengthVal">4.0 ملم</span>
+            </div>
+            <input type="range" id="lengthSlider" min="10" max="60" value="40">
+        </div>
+
+        <div class="control-group">
+            <label>الإدارة</label>
+            <button class="btn btn-tool" id="clearCanvas" style="background:#DC2626; color:white; border:none;">🗑️ مسح</button>
+        </div>
+        
+        <div class="status-bar" id="stitchCounter">إجمالي الغرز: 0</div>
+    </div>
+
+    <div class="main-workspace">
+        <div class="workspace-header">
+            <div>
+                <h3 style="color:var(--primary)">Allam Embroidery Vector Engine V2.0</h3>
+                <p style="font-size:11px; color:#9CA3AF">محرك توليد غرز ذكي ومتقدم</p>
+            </div>
+            <div style="font-size:14px; font-weight:bold;">علام مجاهد 🇾🇪</div>
+        </div>
+
+        <div class="thread-palette" id="palette">
+            <div class="thread-color selected" data-color="#DC2626" style="background:#DC2626"></div>
+            <div class="thread-color" data-color="#2563EB" style="background:#2563EB"></div>
+            <div class="thread-color" data-color="#10B981" style="background:#10B981"></div>
+            <div class="thread-color" data-color="#F59E0B" style="background:#F59E0B"></div>
+            <div class="thread-color" data-color="#EC4899" style="background:#EC4899"></div>
+            <div class="thread-color" data-color="#FFFFFF" style="background:#FFFFFF"></div>
+            <div class="thread-color" data-color="#000000" style="background:#000000"></div>
+        </div>
+
+        <div class="canvas-frame">
+            <canvas id="embroideryCanvas" width="700" height="500"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
